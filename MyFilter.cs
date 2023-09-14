@@ -1,31 +1,32 @@
+﻿using DataAccessLayer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using FirstMVC.Extensions;
 
-namespace News.Filter
+namespace FirstMVC.Models
 {
-    public class MyFilter:ActionFilterAttribute
+    public class MyExceptionFilter :FilterAttribute,IExceptionFilter
     {
-	    public override void OnActionExecuting(ActionExecutingContext filterContext)
+        public void OnException(ExceptionContext filterContext)
         {
-            base.OnActionExecuting(filterContext);
-        }
+            var ctx = new CareerEntities();
+            ErrorLog lg = new ErrorLog();
+            if (filterContext.RequestContext.HttpContext.Session["User"] != null)
+                lg.UserId = ((Users)filterContext.RequestContext.HttpContext.Session["User"]).Id;
+            lg.error = filterContext.Exception.ToString().ControlledSub(1000, "");
+            lg.rawId = filterContext.RequestContext.HttpContext.Request.RawUrl;
+            lg.createDate = DateTime.Now;
 
-        public override void OnActionExecuted(ActionExecutedContext filterContext)
-        {
-            base.OnActionExecuted(filterContext);
-        }
-
-        public override void OnResultExecuting(ResultExecutingContext filterContext)
-        {
-            base.OnResultExecuting(filterContext);
-        }
-
-        public override void OnResultExecuted(ResultExecutedContext filterContext)
-        {
-            base.OnResultExecuted(filterContext);
+            ctx.ErrorLog.Add(lg);
+            ctx.SaveChanges();
+          
+            
+            
+            filterContext.RequestContext.HttpContext.Response.Redirect("/Home/Error");
+            filterContext.RequestContext.HttpContext.Response.End();
         }
     }
 }
